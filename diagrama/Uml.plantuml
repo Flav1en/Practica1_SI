@@ -1,0 +1,30 @@
+@startuml
+skinparam rankdir TB
+title Diagramme de processus RH
+
+start
+:DRH encarga al departamento de Ciberseguridad una campaña;
+:Realizar la campaña;
+:Realizar el informe de la campaña;
+if (Datos de la campaña suficente ? ) then ([yes])
+else ([No])
+  :Solicitar una nueva campaña;
+  if (Solicitud de campaña aceptada ?) then ([yes])
+    :Adjuntar los datos a los anteriormente;
+  else ([No])
+  endif
+endif
+:Enviar datos al servicio RH;
+:Recompilar toda la información;
+:Enviar informe al departamento Analítica Digita;
+label identificatar;
+:Identificar la areas de interés y los modelos de los situos ;
+if(Informacion suficente) then ([no])
+  :Póngase en contacto con el departamento de recursos humanos para obtener información adicional;
+  goto identificatar
+else 
+  :Enviar informe final al servicio humanos;
+  :Identificar el tipo de curso a realizar por los empleados;
+  :Enviar un mail al DRH;
+stop
+@enduml
