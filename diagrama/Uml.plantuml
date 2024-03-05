@@ -30,5 +30,5 @@ if (Visto bueno del director de la sucursal?  ) then ([Yes])
   :solicitación dicho curso a RRHH y se matriculación a dichos empleados;
   stop
 else ([No])
-  stop
+  end
 @enduml
