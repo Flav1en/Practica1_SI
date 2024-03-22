@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 import numpy as np
+import hashlib
 
 def get_users_by_permission_type(permission_type: int):
     """
@@ -116,101 +117,35 @@ def get_worst_sites(data, num_sites=5):
     """
     return sorted(data["legal"], key=lambda x: sum(value == 0 for value in list(x.values())[0]))[-num_sites:]
 
-def categorize_sites_by_privacy_policy_compliance(data):
-    """
-    Categorizes sites based on their compliance with privacy policies.
 
-    This function checks each site in the 'legal' section of the data for compliance with three privacy policies:
-    'cookies', 'aviso', and 'proteccion_de_datos'. It then categorizes the sites into compliant and non-compliant
-    based on whether they comply with all three policies.
+def plot_password_change_intervals(admin_interval, normal_interval):
+    """
+    Plots the average password change intervals for admin and normal users.
+
+    Args:
+        admin_interval (float): The average password change interval for admin users.
+        normal_interval (float): The average password change interval for normal users.
+    """
+    labels = ['Admin', 'Normal']
+    intervals = [admin_interval, normal_interval]
+
+    plt.figure(figsize=(8, 6))
+    plt.bar(labels, intervals, color=['blue', 'orange'])
+    plt.xlabel('Tipo de usuario')
+    plt.ylabel('Intervalo medio de cambio de contraseña')
+    plt.title('Intervalo medio de cambio de contraseña para usuarios Admin y Normal')
+    plt.show()
+
+def get_sites_with_outdated_policies(data):
+    """
+    Returns a dictionary of sites and their outdated policies.
 
     Args:
         data (dict): The data containing the site information.
 
     Returns:
-        tuple: A tuple containing two lists. The first list contains the compliant sites and their creation years.
-        The second list contains the non-compliant sites and their creation years.
+        dict: A dictionary where the keys are the site names and the values are dictionaries of outdated policies.
     """
-    def is_compliant(site_data):
-        """
-        Checks if a site is compliant with all privacy policies.
-
-        This function checks if a site complies with the 'cookies', 'aviso', and 'proteccion_de_datos' policies.
-
-        Args:
-            site_data (dict): The data of the site to check.
-
-        Returns:
-            bool: True if the site complies with all policies, False otherwise.
-        """
-        return all(site_data.get(attr, 0) == 1 for attr in ["cookies", "aviso", "proteccion_de_datos"])
-
-    compliant_sites = [(site_name, site_data["creacion"]) for site_name, site_data in data["legal"] if is_compliant(site_data)]
-    non_compliant_sites = [(site_name, site_data["creacion"]) for site_name, site_data in data["legal"] if not is_compliant(site_data)]
-
-    return compliant_sites, non_compliant_sites
-
-
-def display_sites_by_creation_year(compliant_sites, non_compliant_sites):
-    """
-    Displays the compliant and non-compliant sites grouped by their creation year.
-
-    This function groups the compliant and non-compliant sites by their creation year using the helper function
-    'group_sites_by_year'. It then prints the grouped sites.
-
-    Args:
-        compliant_sites (list): A list of tuples where each tuple contains a compliant site and its creation year.
-        non_compliant_sites (list): A list of tuples where each tuple contains a non-compliant site and its creation year.
-    """
-    def group_sites_by_year(sites):
-        """
-        Groups the sites by their creation year.
-
-        This function creates a dictionary where the keys are the creation years and the values are lists of sites
-        created in those years.
-
-        Args:
-            sites (list): A list of tuples where each tuple contains a site and its creation year.
-
-        Returns:
-            dict: A dictionary where the keys are the creation years and the values are lists of sites created in those years.
-        """
-        sites_by_year = {}
-        for site, year in sites:
-            sites_by_year.setdefault(year, []).append(site)
-        return sites_by_year
-
-    compliant_sites_by_year = group_sites_by_year(compliant_sites)
-    non_compliant_sites_by_year = group_sites_by_year(non_compliant_sites)
-
-    print("Sites Web respectant toutes les politiques de confidentialité :")
-    for year, sites in sorted(compliant_sites_by_year.items()):
-        print(f"Année de création : {year}, Sites : {', '.join(sites)}")
-
-    print("\nSites Web ne respectant pas toutes les politiques de confidentialité :")
-def plot_password_change_intervals(admin_interval, normal_interval):
-    labels = ['Admin', 'Normal']
-    intervals = [admin_interval, normal_interval]
-
-    plt.figure(figsize=(8, 6))
-    plt.bar(labels, intervals, color=['blue', 'green'])
-    plt.xlabel('Type d\'utilisateur')
-    plt.ylabel('Intervalle moyen de changement de mot de passe')
-    plt.title('Intervalle moyen de changement de mot de passe pour les utilisateurs Admin et Normaux')
-    plt.show()
-
-
-def plot_critical_users(top_10_critical_users):
-    plt.figure(figsize=(10, 6))
-    plt.barh(top_10_critical_users['id'], top_10_critical_users['probability'], color='red')
-    plt.xlabel('Probabilité de clics sur les emails de phishing')
-    plt.ylabel('Identifiant utilisateur')
-    plt.title('Top 10 utilisateurs les plus critiques')
-    plt.gca().invert_yaxis()
-    plt.show()
-
-
-def get_sites_with_outdated_policies(data):
     outdated_policies_count = {}
     for site_entry in data["legal"]:
         site_name, site_data = site_entry.popitem()
@@ -220,6 +155,13 @@ def get_sites_with_outdated_policies(data):
 
 
 def plot_sites_with_most_outdated_policies(data, num_sites=5):
+    """
+    Plots the top 5 sites with the most outdated policies.
+
+    Args:
+        data (dict): The data containing the site information.
+        num_sites (int, optional): The number of sites to plot. Defaults to 5.
+    """
     outdated_policies_count = get_sites_with_outdated_policies(data)
     sorted_sites = sorted(outdated_policies_count.items(), key=lambda x: sum(x[1].values()), reverse=True)
     worst_sites = sorted_sites[:num_sites]
@@ -247,7 +189,107 @@ def plot_sites_with_most_outdated_policies(data, num_sites=5):
 
     plt.show()
 
+def respects_policies(data):
+    """
+    Returns two lists of sites that respect and do not respect privacy policies.
 
+    Args:
+        data (dict): The data containing the site information.
+
+    Returns:
+        tuple: A tuple containing two lists. The first list contains the sites that respect privacy policies.
+        The second list contains the sites that do not respect privacy policies.
+    """
+    respecting_sites = []
+    non_respecting_sites = []
+    for site_info in data['legal']:
+        for site, info in site_info.items():
+            if info["cookies"] == 1 and info["aviso"] == 1 and info["proteccion_de_datos"] == 1:
+
+                respecting_sites.append(site_info)
+            else:
+
+                non_respecting_sites.append(site_info)
+
+    return respecting_sites, non_respecting_sites
+
+def group_by_creation_year(data):
+    """
+    Groups sites by their creation year.
+
+    Args:
+        data (list): A list of dictionaries where each dictionary represents a site.
+
+    Returns:
+        dict: A dictionary where the keys are the creation years and the values are lists of sites created in those years.
+    """
+    sites_by_year = {}
+    for entry in data:
+        for site, info in entry.items():
+            year = info['creacion']
+            if year not in sites_by_year:
+                sites_by_year[year] = []
+            sites_by_year[year].append(site)
+
+    # Trier le dictionnaire par année
+    sites_by_year = {year: sites for year, sites in sorted(sites_by_year.items(), key=lambda item: int(item[0]))}
+
+    return sites_by_year
+
+# Fonction pour afficher les données avec Matplotlib
+def plot_data(sites_by_year):
+    """
+    Plots the number of sites by their creation year.
+
+    Args:
+        sites_by_year (dict): A dictionary where the keys are the creation years and the values are lists of sites created in those years.
+    """
+    years = list(sites_by_year.keys())
+    years.sort()
+
+    sites_counts = [len(sites_by_year[year]) for year in years]
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(years, sites_counts, color='b')
+    plt.xlabel('Year of Creation')
+    plt.ylabel('Number of Sites')
+    plt.title('Number of Sites by Year of Creation')
+    plt.show()
+# Fonction pour traiter les données et les regrouper par année de création
+def get_weak_passwords():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT DISTINCT password_hash FROM users')
+    password_hashes = cursor.fetchall()
+    hashed_passwords = [password_hash[0] for password_hash in password_hashes]
+    weak_passwords = []
+
+    with open("rockyou.txt", "r", encoding="latin-1") as dic_file:
+        for mot in dic_file:
+            mot = mot.strip()
+            hachage_md5 = hashlib.md5(mot.encode()).hexdigest()
+            if hachage_md5 in hashed_passwords and not hachage_md5 in weak_passwords:
+                weak_passwords.append(hachage_md5)
+
+    conn.close()
+    return weak_passwords
+
+def get_users_with_weak_passwords_and_probability():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    weak_passwords = get_weak_passwords()
+    weak_passwords_str = ','.join(['"{}"'.format(mdp) for mdp in weak_passwords])
+    query = f"SELECT * FROM users WHERE password_hash IN ({weak_passwords_str})"
+    users_df = pd.read_sql_query(query, conn)
+    conn.close()
+
+    users_df['probability'] = users_df['clicked_emails'] / users_df['phishing_emails']
+
+    # Afficher les 10 pires utilisateurs
+    users_df = users_df.nlargest(10, 'probability')
+    return users_df
 def main():
     # Charger les données à partir du fichier JSON
     data = load_data("../datos/legal_data_online.json")
@@ -267,8 +309,8 @@ def main():
     normal_interval = normal_dates_df['date'].mean()
 
     # Créer un DataFrame avec les intervalles moyens de changement de mot de passe
-    df = pd.DataFrame({'Type': ['Admin', 'Normal'],
-                       'Interval moyen de changement de mot de passe': [admin_interval, normal_interval]})
+    df = pd.DataFrame({'Tipo': ['Admin', 'Normal'],
+                       'Intervalo medio de cambio de contraseña': [admin_interval, normal_interval]})
 
     print(df)
 
@@ -286,17 +328,26 @@ def main():
     # Fusionner les DataFrames des utilisateurs avec les probabilités de phishing
     merged_df = pd.merge(users_df, phishing_probabilities, on='id', how='left')
 
-    # Afficher les utilisateurs avec leur probabilité de phishing
-    print("Utilisateurs avec leur probabilité de phishing :")
-    print(merged_df[['id', 'username', 'phone', 'province', 'permissions',
-                     'total_emails', 'phishing_emails', 'clicked_emails', 'probability']])
-
-    print("\nTop 10 utilisateurs les plus critiques :")
-    print(top_10_critical_users)
-
-    # Afficher les utilisateurs les plus critiques sous forme de graphique
-    plot_critical_users(top_10_critical_users)
     plot_sites_with_most_outdated_policies(data)
+
+
+
+    # Données fournies
+    data = load_data("../datos/legal_data_online.json")
+
+    # Appel de la fonction avec les données fournies
+    respect, non_respect =respects_policies(data)
+
+    sites_by_year = group_by_creation_year(respect)
+
+    print("Sites respecting privacy",sites_by_year)
+
+    sites_by_year = group_by_creation_year(non_respect)
+
+    print("Sites not respecting privacy",sites_by_year)
+
+    print(get_users_with_weak_passwords_and_probability())
+    # Afficher les données avec Matplotlib
 
 
 if __name__ == "__main__":
