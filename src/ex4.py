@@ -88,13 +88,13 @@ def probability_of_phishing_emails():
 
 def load_data(file_path):
     """
-    Charger les données à partir d'un fichier JSON.
+    This function loads data from a JSON file.
 
     Args:
-    - file_path (str): Chemin d'accès du fichier JSON.
+        file_path (str): The path to the JSON file.
 
     Returns:
-    - dict: Données chargées depuis le fichier JSON.
+        dict: The data loaded from the JSON file.
     """
     with open(file_path) as file:
         data = json.load(file)
@@ -231,12 +231,11 @@ def group_by_creation_year(data):
                 sites_by_year[year] = []
             sites_by_year[year].append(site)
 
-    # Trier le dictionnaire par année
     sites_by_year = {year: sites for year, sites in sorted(sites_by_year.items(), key=lambda item: int(item[0]))}
 
     return sites_by_year
 
-# Fonction pour afficher les données avec Matplotlib
+
 def plot_data(sites_by_year):
     """
     Plots the number of sites by their creation year.
@@ -255,7 +254,7 @@ def plot_data(sites_by_year):
     plt.ylabel('Number of Sites')
     plt.title('Number of Sites by Year of Creation')
     plt.show()
-# Fonction pour traiter les données et les regrouper par année de création
+
 def get_weak_passwords():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
@@ -287,11 +286,9 @@ def get_users_with_weak_passwords_and_probability():
 
     users_df['probability'] = users_df['clicked_emails'] / users_df['phishing_emails']
 
-    # Afficher les 10 pires utilisateurs
     users_df = users_df.nlargest(10, 'probability')
     return users_df
 def main():
-    # Charger les données à partir du fichier JSON
     data = load_data("../datos/legal_data_online.json")
     dates_df = get_dates_from_database()
 
@@ -308,34 +305,25 @@ def main():
     admin_interval = admin_dates_df['date'].mean()
     normal_interval = normal_dates_df['date'].mean()
 
-    # Créer un DataFrame avec les intervalles moyens de changement de mot de passe
     df = pd.DataFrame({'Tipo': ['Admin', 'Normal'],
                        'Intervalo medio de cambio de contraseña': [admin_interval, normal_interval]})
 
     print(df)
 
-    # Afficher les intervalles moyens de changement de mot de passe sous forme de graphique
     plot_password_change_intervals(admin_interval, normal_interval)
 
-    # Afficher les 10 utilisateurs les plus critiques sous forme de graphique
     phishing_probabilities = probability_of_phishing_emails()
     top_10_critical_users = phishing_probabilities.nlargest(10, 'probability')
 
-    # Charger les données des utilisateurs
     conn = sqlite3.connect('database.db')
     users_df = pd.read_sql_query("SELECT * FROM users", conn)
 
-    # Fusionner les DataFrames des utilisateurs avec les probabilités de phishing
     merged_df = pd.merge(users_df, phishing_probabilities, on='id', how='left')
 
     plot_sites_with_most_outdated_policies(data)
 
-
-
-    # Données fournies
     data = load_data("../datos/legal_data_online.json")
 
-    # Appel de la fonction avec les données fournies
     respect, non_respect =respects_policies(data)
 
     sites_by_year = group_by_creation_year(respect)
@@ -347,8 +335,6 @@ def main():
     print("Sites not respecting privacy",sites_by_year)
 
     print(get_users_with_weak_passwords_and_probability())
-    # Afficher les données avec Matplotlib
-
 
 if __name__ == "__main__":
     main()
